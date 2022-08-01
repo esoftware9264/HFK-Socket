@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Browser</title>
+  </head>
+  <body>
+    <div id="custIdWrap">
+      <p>cust ID :</p>
+      <form id="setPhone" action="">
+        <input id="phone" size="35" maxlength="10" />
+        <input type="submit" value="Submit" />
+      </form>
+      <form id="joinRoom" action="">
+        <input type="text" placeholder="roomKey for group" id="roomKey" />
+        <input type="submit" value="Join" />
+      </form>
+      <div>
+        <input type="text" placeholder="private" id="sendingTo" />
+
+        <textarea rows="5" cols="40" id="msg"></textarea>
+        <button id="send">Send Private</button>
+        <button id="sendGrp">Send Group</button>
+      </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      var setPhone = $("#setPhone");
+      var phone = $("#phone");
+      var joinRoom = $("#joinRoom");
+      var roomKey = $("#roomKey");
+      var sendBtn = $("#send");
+      var sendingTo = $("#sendingTo");
+      var sendBtnGrp = $("#sendGrp");
+      var sendingToGrp = $("#sendingToGrp");
+      var sendMsg = $("#msg");
+      var socket;
+
+      function connect() {
+        if (!socket || (socket && socket.disconnected)) {
+          socket = io("", {
+            reconnect: true,
+            forceNew:true
+          });
+
+          setupListeners(socket);
+        } 
+
+        console.log(socket);
+        socket.emit("new user", phone.val(), function (response) {
+          console.log(response);
+        });
+      }
+
+      joinRoom.submit(function (e) {
+        e.preventDefault();
+        socket.emit("room-join", {
+          roomKey: roomKey.val(),
+        });
+      });
+
+      setPhone.submit(function (e) {
+        e.preventDefault();
+
+        connect();
+
+        
+
+        
+        
+      });
+
+      function setupListeners(sckt) {
+        sckt.on("private", function (payload) {
+          console.log("private payload",payload);
+        });
+
+        sckt.on("private-chat", function (payload) {
+          console.log("private-chat payload",payload);
+        });
+
+        sckt.on("group-chat", function (payload) {
+          console.log("group-chat payload",payload);
+        });
+
+        sckt.on("broadcast", (payload) => {
+          console.log("broadcast payload",payload);
+        });
+
+        sckt.on("disconnect", function () {
+          console.log("disconnected");
+        });
+
+        sckt.on("reconnecting", function () {
+          console.log("reconnecting");
+        });
+
+        sckt.on("reconnect", function () {
+          console.log("reconnected");
+          sckt.removeAllListeners();
+          connect();
+        });
+      }
+
+      sendBtn.click(function () {
+        socket.emit("send message", {
+          customer: sendingTo.val(),
+          message: sendMsg.val(),
+        });
+        socket.emit("private-chat", {
+          customer: sendingTo.val(),
+          message: sendMsg.val(),
+        });
+      });
+
+      sendBtnGrp.click(function () {
+        socket.emit("broadcast", {
+          roomKey: roomKey.val(),
+          purpose: "groupChat",
+          sender: phone.val() + "#" + phone.val(),
+          data: {
+            msg: sendMsg.val(),
+          },
+        });
+
+        // socket.emit('group-chat', {receivers:receivers, message:sendMsg.val()});
+      });
+    </script>
+  </body>
+</html>
